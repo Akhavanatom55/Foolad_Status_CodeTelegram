@@ -14,7 +14,7 @@ def _health_app() -> web.Application:
         return web.json_response(
             {
                 "status": "ok",
-                "service": "exam-monitor-telegram",
+                "service": "exam-monitor-bale",
             }
         )
 

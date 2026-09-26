@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
-from telegram import Update
-
-from bot import build_application
+from bot import build_bot
 from config import Settings
 from health import start_health_server
 
@@ -12,19 +11,15 @@ logger = logging.getLogger("exam-monitor")
 
 
 def main() -> None:
+    # Belmo API services expose PORT. The lightweight HTTP server keeps the
+    # service reachable while the Bale polling process runs in the foreground.
     settings = Settings.from_env()
     settings.ensure_storage_dir()
     start_health_server(settings.port)
 
-    application = build_application(settings)
-    logger.info("Starting Telegram polling process")
-    # run_polling() manages its own event loop (do NOT wrap this in
-    # asyncio.run()) and already deletes any leftover webhook for us before
-    # the first getUpdates call.
-    application.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-    )
+    app = asyncio.run(build_bot(settings))
+    logger.info("Starting Bale polling process")
+    app.run()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import socket
 import json
 import logging
 import time
@@ -104,6 +106,15 @@ class MoodleClient:
             )
         return f"HTTP {status} from Moodle: {body}"
 
+    def _connector(self) -> aiohttp.TCPConnector:
+        """Optionally force IPv4 when LMS_FORCE_IPV4=1 (helps broken IPv6 routes)."""
+        import os
+        force_v4 = os.getenv("LMS_FORCE_IPV4", "").strip().lower() in {"1", "true", "yes", "on"}
+        if force_v4:
+            return aiohttp.TCPConnector(family=socket.AF_INET, ssl=True)
+        return aiohttp.TCPConnector(ssl=True)
+
+
     async def call(self, function: str, **params: Any) -> Any:
         payload = {
             "wstoken": self.token,
@@ -125,7 +136,7 @@ class MoodleClient:
             "Cache-Control": "no-cache",
         }
 
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+        async with aiohttp.ClientSession(timeout=timeout, headers=headers, connector=self._connector()) as session:
             for attempt in range(self.max_retries + 1):
                 started = time.monotonic()
                 try:
@@ -284,7 +295,7 @@ class MoodleClient:
                         filename=filename,
                         content_type="application/xml",
                     )
-                    async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+                    async with aiohttp.ClientSession(timeout=timeout, headers=headers, connector=self._connector()) as session:
                         async with session.post(self.upload_endpoint, data=data) as response:
                             raw = await response.text()
                             if response.status >= 400:

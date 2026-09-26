@@ -33,8 +33,8 @@ def _csv_strings(value: str) -> tuple[str, ...]:
 
 @dataclass(frozen=True)
 class Settings:
-    telegram_token: str
-    telegram_api_base: str | None
+    bale_token: str
+    bale_api_base: str
     admin_ids: FrozenSet[int]
     allowed_group_ids: FrozenSet[int]
     lms_url: str
@@ -53,13 +53,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
-        telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-        if not telegram_token:
-            raise RuntimeError("TELEGRAM_BOT_TOKEN is required")
-
-        # Only needed for a self-hosted local Bot API server. Leave unset to
-        # use Telegram's normal cloud API (https://api.telegram.org/bot...).
-        telegram_api_base = os.getenv("TELEGRAM_API_BASE", "").strip() or None
+        bale_token = os.getenv("BALE_TOKEN", "").strip()
+        if not bale_token:
+            raise RuntimeError("BALE_TOKEN is required")
 
         lms_url = os.getenv("LMS_URL", "").strip().rstrip("/")
         if not lms_url:
@@ -77,7 +73,7 @@ class Settings:
 
         admin_ids = _csv_ints(os.getenv("ADMIN_IDS", ""))
         if not admin_ids:
-            raise RuntimeError("ADMIN_IDS must contain at least one numeric Telegram user id")
+            raise RuntimeError("ADMIN_IDS must contain at least one numeric Telegram/Bale user id")
 
         status_date_mode = os.getenv("STATUS_DATE_MODE", "open_time").strip().lower()
         if status_date_mode not in {"open_time", "created_time", "either"}:
@@ -86,8 +82,8 @@ class Settings:
         db_path = os.getenv("DB_PATH", "data/exam_monitor.db").strip()
 
         return cls(
-            telegram_token=telegram_token,
-            telegram_api_base=telegram_api_base,
+            bale_token=bale_token,
+            bale_api_base=os.getenv("BALE_API_BASE", "https://tapi.bale.ai").rstrip("/"),
             admin_ids=admin_ids,
             allowed_group_ids=_csv_ints(os.getenv("ALLOWED_GROUP_IDS", "")),
             lms_url=lms_url,
